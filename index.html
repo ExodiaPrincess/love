@@ -178,7 +178,12 @@
     border: 2px solid #ffb3d1;
     box-shadow: 0 4px 0 #ffb3d1, 0 6px 12px rgba(255, 179, 209, 0.4);
     position: relative;
-    transition: top 0.25s ease, left 0.25s ease, transform 0.25s ease;
+    /* no transition once bouncing — rAF drives the motion */
+    white-space: nowrap;
+    will-change: left, top, transform;
+  }
+  .no-btn.bouncing {
+    z-index: 5;
   }
 
   /* celebration screen */
@@ -329,79 +334,126 @@
   let noIndex = 0;
 
   const SAFE_MARGIN = 12;
-  const MAX_ROTATE_DEG = 10;
 
-  function clampNoButton() {
-    // change text & rotation first, then measure the un-rotated size
-    const rot = (Math.random() * 2 - 1) * MAX_ROTATE_DEG;
-    noBtn.style.transform = 'rotate(0deg)'; // measure axis-aligned
-    // force layout so offsetWidth/Height reflect the new text
+  // ── continuous DVD-style bounce for the No button ──────────────────────
+  let noX = 0, noY = 0;
+  let noVX = 0, noVY = 0;
+  let noRunning = false;
+  let noAngle = 0;       // current rotation in degrees
+  let noAngleVel = 0;    // degrees per frame
+  let lastFrameTime = 0;
+
+  function clampInside() {
     const w = noBtn.offsetWidth;
     const h = noBtn.offsetHeight;
-
-    // bounding box of a rotated rectangle
-    const rad = Math.abs(rot) * Math.PI / 180;
-    const bboxW = w * Math.cos(rad) + h * Math.sin(rad);
-    const bboxH = w * Math.sin(rad) + h * Math.cos(rad);
-
-    // extra padding caused by rotation, applied on each side
-    const padX = (bboxW - w) / 2;
-    const padY = (bboxH - h) / 2;
-
-    const minX = SAFE_MARGIN + padX;
-    const minY = SAFE_MARGIN + padY;
-    const maxX = window.innerWidth  - w - SAFE_MARGIN - padX;
-    const maxY = window.innerHeight - h - SAFE_MARGIN - padY;
-
-    // if the viewport is somehow smaller than the button, fall back to top-left
-    const rangeX = Math.max(0, maxX - minX);
-    const rangeY = Math.max(0, maxY - minY);
-
-    const newX = Math.floor(minX + Math.random() * rangeX);
-    const newY = Math.floor(minY + Math.random() * rangeY);
-
-    noBtn.style.position = 'fixed';
-    noBtn.style.left = newX + 'px';
-    noBtn.style.top  = newY + 'px';
-    noBtn.style.transform = `rotate(${rot}deg)`;
+    if (noX < SAFE_MARGIN) noX = SAFE_MARGIN;
+    if (noY < SAFE_MARGIN) noY = SAFE_MARGIN;
+    if (noX > window.innerWidth  - w - SAFE_MARGIN) noX = window.innerWidth  - w - SAFE_MARGIN;
+    if (noY > window.innerHeight - h - SAFE_MARGIN) noY = window.innerHeight - h - SAFE_MARGIN;
   }
 
-  function dodge() {
-    // change the label first so the new size is what we clamp against
+  function startBouncing() {
+    if (noRunning) return;
+
+    // lock current size into a fixed-position element starting at its current spot
+    const rect = noBtn.getBoundingClientRect();
+    noBtn.classList.add('bouncing');
+    noBtn.style.position = 'fixed';
+    noBtn.style.left = rect.left + 'px';
+    noBtn.style.top  = rect.top  + 'px';
+    noBtn.style.margin = '0';
+    noX = rect.left;
+    noY = rect.top;
+
+    // initial velocity: random direction, gentle speed
+    const speed = 3.2; // px per frame at 60fps
+    const dir = Math.random() * Math.PI * 2;
+    noVX = Math.cos(dir) * speed;
+    noVY = Math.sin(dir) * speed;
+    noAngleVel = (Math.random() * 2 - 1) * 0.6;
+
+    noRunning = true;
+    lastFrameTime = performance.now();
+    requestAnimationFrame(tickNo);
+  }
+
+  function tickNo(now) {
+    if (!noRunning) return;
+    // delta-time scaling so it stays consistent across refresh rates
+    const dt = Math.min(2.5, (now - lastFrameTime) / 16.6667);
+    lastFrameTime = now;
+
+    const w = noBtn.offsetWidth;
+    const h = noBtn.offsetHeight;
+    const minX = SAFE_MARGIN;
+    const minY = SAFE_MARGIN;
+    const maxX = window.innerWidth  - w - SAFE_MARGIN;
+    const maxY = window.innerHeight - h - SAFE_MARGIN;
+
+    noX += noVX * dt;
+    noY += noVY * dt;
+
+    let bounced = false;
+    if (noX <= minX) { noX = minX; noVX =  Math.abs(noVX); bounced = true; }
+    if (noX >= maxX) { noX = maxX; noVX = -Math.abs(noVX); bounced = true; }
+    if (noY <= minY) { noY = minY; noVY =  Math.abs(noVY); bounced = true; }
+    if (noY >= maxY) { noY = maxY; noVY = -Math.abs(noVY); bounced = true; }
+
+    if (bounced) onBounce();
+
+    noAngle += noAngleVel * dt;
+    // keep angle small so the bbox stays close to axis-aligned
+    if (noAngle >  12) { noAngle =  12; noAngleVel = -Math.abs(noAngleVel); }
+    if (noAngle < -12) { noAngle = -12; noAngleVel =  Math.abs(noAngleVel); }
+
+    noBtn.style.left = noX + 'px';
+    noBtn.style.top  = noY + 'px';
+    noBtn.style.transform = `rotate(${noAngle}deg)`;
+
+    requestAnimationFrame(tickNo);
+  }
+
+  function onBounce() {
+    // cycle the cheeky message
     noIndex = (noIndex + 1) % noMessages.length;
     noBtn.textContent = noMessages[noIndex];
-
-    clampNoButton();
-
-    // every dodge, also grow the yes button a little
+    // grow the Yes button a tiny bit each bounce
     const currentScale = parseFloat(yesBtn.dataset.scale || '1');
-    const nextScale = Math.min(currentScale + 0.08, 2.2);
+    const nextScale = Math.min(currentScale + 0.04, 2.2);
     yesBtn.dataset.scale = nextScale;
     yesBtn.style.transform = `scale(${nextScale})`;
+    // re-clamp in case the new text grew the button past the wall
+    clampInside();
   }
 
-  // keep the No button on-screen if the window is resized after it has moved
+  // dodge/boost on any attempt to interact — also bumps velocity
+  function boost(e) {
+    if (e) e.preventDefault();
+    if (!noRunning) { startBouncing(); return; }
+    // randomize direction & give it a kick
+    const speed = 5.5;
+    const dir = Math.random() * Math.PI * 2;
+    noVX = Math.cos(dir) * speed;
+    noVY = Math.sin(dir) * speed;
+    noAngleVel = (Math.random() * 2 - 1) * 1.2;
+    onBounce();
+  }
+
+  noBtn.addEventListener('mouseover', boost);
+  noBtn.addEventListener('mouseenter', boost);
+  noBtn.addEventListener('focus', boost);
+  noBtn.addEventListener('click', boost);
+  noBtn.addEventListener('touchstart', boost, { passive: false });
+
+  // keep on-screen if the window resizes
   window.addEventListener('resize', () => {
-    if (noBtn.style.position === 'fixed') {
-      // re-clamp current position without changing the text
-      const rect = noBtn.getBoundingClientRect();
-      const w = noBtn.offsetWidth;
-      const h = noBtn.offsetHeight;
-      const maxLeft = window.innerWidth  - w - SAFE_MARGIN;
-      const maxTop  = window.innerHeight - h - SAFE_MARGIN;
-      const left = Math.min(Math.max(SAFE_MARGIN, rect.left), maxLeft);
-      const top  = Math.min(Math.max(SAFE_MARGIN, rect.top),  maxTop);
-      noBtn.style.left = left + 'px';
-      noBtn.style.top  = top  + 'px';
-    }
+    if (noRunning) clampInside();
   });
 
-  noBtn.addEventListener('mouseover', dodge);
-  noBtn.addEventListener('mouseenter', dodge);
-  noBtn.addEventListener('focus', dodge);
-  // touch devices: dodge when tapped
-  noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); dodge(); }, { passive: false });
-  noBtn.addEventListener('click', (e) => { e.preventDefault(); dodge(); });
+  // start bouncing shortly after load so the layout is readable first
+  window.addEventListener('load', () => {
+    setTimeout(startBouncing, 900);
+  });
 
   // ── Yes click → celebration ────────────────────────────────────────────
   const celebration = document.getElementById('celebration');
