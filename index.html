@@ -328,29 +328,73 @@
   ];
   let noIndex = 0;
 
-  function dodge() {
-    const rect = noBtn.getBoundingClientRect();
-    const maxX = window.innerWidth  - rect.width  - 20;
-    const maxY = window.innerHeight - rect.height - 20;
+  const SAFE_MARGIN = 12;
+  const MAX_ROTATE_DEG = 10;
 
-    // pick a new random spot, but stay on screen
-    const newX = Math.max(10, Math.floor(Math.random() * maxX));
-    const newY = Math.max(10, Math.floor(Math.random() * maxY));
+  function clampNoButton() {
+    // change text & rotation first, then measure the un-rotated size
+    const rot = (Math.random() * 2 - 1) * MAX_ROTATE_DEG;
+    noBtn.style.transform = 'rotate(0deg)'; // measure axis-aligned
+    // force layout so offsetWidth/Height reflect the new text
+    const w = noBtn.offsetWidth;
+    const h = noBtn.offsetHeight;
+
+    // bounding box of a rotated rectangle
+    const rad = Math.abs(rot) * Math.PI / 180;
+    const bboxW = w * Math.cos(rad) + h * Math.sin(rad);
+    const bboxH = w * Math.sin(rad) + h * Math.cos(rad);
+
+    // extra padding caused by rotation, applied on each side
+    const padX = (bboxW - w) / 2;
+    const padY = (bboxH - h) / 2;
+
+    const minX = SAFE_MARGIN + padX;
+    const minY = SAFE_MARGIN + padY;
+    const maxX = window.innerWidth  - w - SAFE_MARGIN - padX;
+    const maxY = window.innerHeight - h - SAFE_MARGIN - padY;
+
+    // if the viewport is somehow smaller than the button, fall back to top-left
+    const rangeX = Math.max(0, maxX - minX);
+    const rangeY = Math.max(0, maxY - minY);
+
+    const newX = Math.floor(minX + Math.random() * rangeX);
+    const newY = Math.floor(minY + Math.random() * rangeY);
 
     noBtn.style.position = 'fixed';
     noBtn.style.left = newX + 'px';
     noBtn.style.top  = newY + 'px';
-    noBtn.style.transform = `rotate(${(Math.random() * 30 - 15)}deg)`;
+    noBtn.style.transform = `rotate(${rot}deg)`;
+  }
 
-    // every other dodge, also grow the yes button a little
+  function dodge() {
+    // change the label first so the new size is what we clamp against
     noIndex = (noIndex + 1) % noMessages.length;
     noBtn.textContent = noMessages[noIndex];
 
+    clampNoButton();
+
+    // every dodge, also grow the yes button a little
     const currentScale = parseFloat(yesBtn.dataset.scale || '1');
     const nextScale = Math.min(currentScale + 0.08, 2.2);
     yesBtn.dataset.scale = nextScale;
     yesBtn.style.transform = `scale(${nextScale})`;
   }
+
+  // keep the No button on-screen if the window is resized after it has moved
+  window.addEventListener('resize', () => {
+    if (noBtn.style.position === 'fixed') {
+      // re-clamp current position without changing the text
+      const rect = noBtn.getBoundingClientRect();
+      const w = noBtn.offsetWidth;
+      const h = noBtn.offsetHeight;
+      const maxLeft = window.innerWidth  - w - SAFE_MARGIN;
+      const maxTop  = window.innerHeight - h - SAFE_MARGIN;
+      const left = Math.min(Math.max(SAFE_MARGIN, rect.left), maxLeft);
+      const top  = Math.min(Math.max(SAFE_MARGIN, rect.top),  maxTop);
+      noBtn.style.left = left + 'px';
+      noBtn.style.top  = top  + 'px';
+    }
+  });
 
   noBtn.addEventListener('mouseover', dodge);
   noBtn.addEventListener('mouseenter', dodge);
