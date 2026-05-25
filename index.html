@@ -379,11 +379,11 @@
     noY = rect.top;
 
     // initial velocity: random direction, gentle speed
-    const speed = 3.2; // px per frame at 60fps
+    const speed = 1.4; // px per frame at 60fps
     const dir = Math.random() * Math.PI * 2;
     noVX = Math.cos(dir) * speed;
     noVY = Math.sin(dir) * speed;
-    noAngleVel = (Math.random() * 2 - 1) * 0.6;
+    noAngleVel = (Math.random() * 2 - 1) * 0.25;
 
     noRunning = true;
     lastFrameTime = performance.now();
@@ -444,12 +444,12 @@
   function boost(e) {
     if (e) e.preventDefault();
     if (!noRunning) { startBouncing(); return; }
-    // randomize direction & give it a kick
-    const speed = 5.5;
+    // randomize direction & give it a small kick
+    const speed = 2.2;
     const dir = Math.random() * Math.PI * 2;
     noVX = Math.cos(dir) * speed;
     noVY = Math.sin(dir) * speed;
-    noAngleVel = (Math.random() * 2 - 1) * 1.2;
+    noAngleVel = (Math.random() * 2 - 1) * 0.5;
     onBounce();
   }
 
