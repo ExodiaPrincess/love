@@ -678,9 +678,11 @@
   let noAngle = 0;       // current rotation in degrees
   let noAngleVel = 0;    // degrees per frame
   let lastFrameTime = 0;
-  // how quickly displayX/Y catch up to noX/noY per frame at 60fps (0..1).
-  // Lower = smoother drift after sudden text-size changes. ~0.32 = ~165ms settle.
-  const DISPLAY_LERP = 0.32;
+  // adaptive lerp: tight when displayX is already close to noX, slow when
+  // there's been a sudden jump (e.g. text-change clamp) so it visibly glides
+  const LERP_CLOSE = 0.30; // per-frame catch-up at small deltas
+  const LERP_FAR   = 0.08; // per-frame catch-up when far from target
+  const LERP_FAR_DIST = 40; // px at which we hit the far rate
 
   function getPlayBounds() {
     const w = Math.min(PLAY_MAX_W, window.innerWidth  * PLAY_VIEWPORT_RATIO);
@@ -759,10 +761,16 @@
 
     // drift displayX/displayY toward the logical position so any sudden
     // clamp (caused by a text change resizing the button) glides in
-    // instead of teleporting
-    const a = 1 - Math.pow(1 - DISPLAY_LERP, dt);
-    displayX += (noX - displayX) * a;
-    displayY += (noY - displayY) * a;
+    // instead of teleporting. Use a slower lerp the farther we are so
+    // big jumps glide smoothly while normal drift stays tight.
+    const distDX = noX - displayX;
+    const distDY = noY - displayY;
+    const dist = Math.hypot(distDX, distDY);
+    const ft = Math.min(1, dist / LERP_FAR_DIST);
+    const aRate = LERP_CLOSE + (LERP_FAR - LERP_CLOSE) * ft;
+    const a = 1 - Math.pow(1 - aRate, dt);
+    displayX += distDX * a;
+    displayY += distDY * a;
 
     noBtn.style.left = displayX + 'px';
     noBtn.style.top  = displayY + 'px';
