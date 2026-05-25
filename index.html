@@ -534,10 +534,85 @@
     place-items: center;
     background: radial-gradient(circle at 50% 40%, #fff0f7 0%, #ffd1e3 55%, #ffb3d1 100%);
     overflow: hidden;
+    cursor: pointer;
   }
   .love-modal.show {
     display: grid;
     animation: fade-in 0.5s ease both;
+  }
+  .tap-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Caveat', cursive;
+    font-size: clamp(18px, 2vw, 24px);
+    color: #b03a72;
+    opacity: 0.8;
+    animation: tap-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes tap-pulse {
+    0%, 100% { opacity: 0.45; transform: translate(-50%, 0) scale(1); }
+    50%      { opacity: 0.9;  transform: translate(-50%, 0) scale(1.08); }
+  }
+
+  /* airport popup with photo */
+  .airport-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: none;
+    place-items: center;
+    background: radial-gradient(circle at 50% 40%, #fff0f7 0%, #ffd1e3 55%, #ffb3d1 100%);
+    overflow: hidden;
+    padding: clamp(12px, 3vh, 28px) 20px;
+  }
+  .airport-modal.show {
+    display: grid;
+    animation: fade-in 0.5s ease both;
+  }
+  .airport-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: min(92vw, 720px);
+    animation: love-pop 0.7s cubic-bezier(.22,1.4,.36,1) both;
+  }
+  .airport-img {
+    width: 100%;
+    max-height: 72vh;
+    object-fit: contain;
+    border-radius: 28px;
+    border: 6px solid white;
+    box-shadow:
+      0 0 0 4px #ffb3d1,
+      0 20px 40px rgba(255, 95, 162, 0.4),
+      0 0 60px rgba(255, 182, 213, 0.6);
+    display: block;
+    margin: 0 auto 18px;
+  }
+  .airport-text {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(28px, 4.4vw, 54px);
+    color: #ff3d8b;
+    text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(255, 159, 200, 0.5);
+    line-height: 1.15;
+    animation: love-wiggle 2.4s ease-in-out infinite;
+  }
+  .airport-hearts {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .airport-hearts span {
+    position: absolute;
+    bottom: -40px;
+    color: #ff5fa2;
+    opacity: 0.85;
+    font-size: 24px;
+    animation: love-rise linear infinite;
+    text-shadow: 0 0 10px rgba(255, 95, 162, 0.5);
   }
   .love-content {
     position: relative;
@@ -714,6 +789,7 @@
 <div class="love-modal" id="loveModal" hidden>
   <div class="love-hearts" id="loveHearts" aria-hidden="true"></div>
   <div class="love-content">
+    <p class="tap-hint">tap anywhere ♡</p>
     <svg class="ghostface-svg" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <radialGradient id="faceGrad" cx="50%" cy="40%" r="60%">
@@ -748,6 +824,14 @@
       <text x="190" y="90" font-size="18" fill="#ff7eb6" font-family="serif">♡</text>
     </svg>
     <h2 class="love-text">i love you ♡</h2>
+  </div>
+</div>
+
+<div class="airport-modal" id="airportModal" hidden>
+  <div class="airport-hearts" id="airportHearts" aria-hidden="true"></div>
+  <div class="airport-content">
+    <img class="airport-img" src="airport.jpg" alt="ghostface couple ♡" />
+    <p class="airport-text">me taking u to the airport with me</p>
   </div>
 </div>
 
@@ -1040,26 +1124,51 @@
   const loveModal  = document.getElementById('loveModal');
   const loveHearts = document.getElementById('loveHearts');
 
+  function spawnRisingHearts(container, count) {
+    const symbols = ['♡', '♥', '✿', '❀', '✦'];
+    const colors  = ['#ff5fa2', '#ff7eb6', '#ffb3d1', '#ff3d8b'];
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement('span');
+      s.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      s.style.left = Math.random() * 100 + 'vw';
+      s.style.fontSize = (16 + Math.random() * 24) + 'px';
+      s.style.color = colors[Math.floor(Math.random() * colors.length)];
+      s.style.animationDuration = (7 + Math.random() * 8) + 's';
+      s.style.animationDelay = (Math.random() * 6) + 's';
+      container.appendChild(s);
+    }
+  }
+
   function showLove() {
     loveModal.hidden = false;
     requestAnimationFrame(() => loveModal.classList.add('show'));
-    // spawn a soft rain of rising hearts
     if (!loveHearts.dataset.spawned) {
       loveHearts.dataset.spawned = '1';
-      const symbols = ['♡', '♥', '✿', '❀', '✦'];
-      const colors  = ['#ff5fa2', '#ff7eb6', '#ffb3d1', '#ff3d8b'];
-      for (let i = 0; i < 24; i++) {
-        const s = document.createElement('span');
-        s.textContent = symbols[Math.floor(Math.random() * symbols.length)];
-        s.style.left = Math.random() * 100 + 'vw';
-        s.style.fontSize = (16 + Math.random() * 24) + 'px';
-        s.style.color = colors[Math.floor(Math.random() * colors.length)];
-        s.style.animationDuration = (7 + Math.random() * 8) + 's';
-        s.style.animationDelay = (Math.random() * 6) + 's';
-        loveHearts.appendChild(s);
-      }
+      spawnRisingHearts(loveHearts, 24);
     }
   }
+
+  // tapping anywhere on the love modal advances to the airport popup
+  const airportModal  = document.getElementById('airportModal');
+  const airportHearts = document.getElementById('airportHearts');
+
+  function showAirport() {
+    airportModal.hidden = false;
+    requestAnimationFrame(() => airportModal.classList.add('show'));
+    if (!airportHearts.dataset.spawned) {
+      airportHearts.dataset.spawned = '1';
+      spawnRisingHearts(airportHearts, 22);
+    }
+  }
+
+  loveModal.addEventListener('click', () => {
+    if (!loveModal.classList.contains('show')) return;
+    loveModal.classList.remove('show');
+    setTimeout(() => {
+      loveModal.hidden = true;
+      showAirport();
+    }, 350);
+  });
 
   function startConfetti() {
     const symbols = ['♡', '♥', '✿', '❀', '✦', '⋆'];
