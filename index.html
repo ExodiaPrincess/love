@@ -192,9 +192,11 @@
     inset: 0;
     z-index: 10;
     display: none;
-    place-items: center;
+    justify-items: center;
+    align-content: start;
     text-align: center;
-    padding: 24px;
+    padding: clamp(20px, 5vh, 60px) 24px 24px;
+    overflow-y: auto;
     background: radial-gradient(circle at 50% 40%, #fff0f7 0%, #ffd1e3 60%, #ffb3d1 100%);
   }
   .celebration.show { display: grid; animation: fade-in 0.6s ease both; }
@@ -203,14 +205,15 @@
   .celebration-content {
     position: relative;
     z-index: 2;
+    margin: 0 auto;
   }
 
   .celebration h2 {
     font-family: 'Pacifico', cursive;
-    font-size: clamp(40px, 8vw, 80px);
+    font-size: clamp(34px, 6vw, 64px);
     color: #ff3d8b;
     text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(255, 159, 200, 0.5);
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     animation: wiggle 2s ease-in-out infinite;
   }
   @keyframes wiggle {
@@ -220,18 +223,19 @@
 
   .celebration p {
     font-family: 'Caveat', cursive;
-    font-size: clamp(24px, 3vw, 34px);
+    font-size: clamp(22px, 2.6vw, 30px);
     color: #b03a72;
     max-width: 600px;
-    margin: 0 auto 28px;
-    line-height: 1.4;
+    margin: 0 auto 20px;
+    line-height: 1.35;
   }
 
   .big-heart {
-    font-size: clamp(80px, 14vw, 140px);
+    font-size: clamp(56px, 9vw, 96px);
     display: inline-block;
+    margin-bottom: 4px;
     animation: big-beat 1.2s ease-in-out infinite;
-    filter: drop-shadow(0 8px 20px rgba(255, 95, 162, 0.5));
+    filter: drop-shadow(0 6px 16px rgba(255, 95, 162, 0.5));
   }
   @keyframes big-beat {
     0%, 100% { transform: scale(1); }
