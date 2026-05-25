@@ -635,6 +635,7 @@
   </div>
 </div>
 
+<audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
 <button class="sound-hint" id="soundToggle">♪ play music</button>
 
 <script>
@@ -809,14 +810,28 @@
   noBtn.addEventListener('click', onClickNo);
   noBtn.addEventListener('touchstart', onClickNo, { passive: false });
 
+  // first hover starts the drift — and aims away from the cursor — but does
+  // NOT change the message. If she never hovers, the No button stays in place.
+  function onFirstNoHover(e) {
+    if (noRunning) return;
+    const rect = noBtn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top  + rect.height / 2;
+    const dx = cx - e.clientX;
+    const dy = cy - e.clientY;
+    const len = Math.hypot(dx, dy);
+    startBouncing();
+    if (len > 0.1) {
+      const speed = 1.4;
+      noVX = (dx / len) * speed;
+      noVY = (dy / len) * speed;
+    }
+  }
+  noBtn.addEventListener('mouseenter', onFirstNoHover);
+
   // keep on-screen if the window resizes
   window.addEventListener('resize', () => {
     if (noRunning) clampInside();
-  });
-
-  // start bouncing shortly after load so the layout is readable first
-  window.addEventListener('load', () => {
-    setTimeout(startBouncing, 900);
   });
 
   // ── Yes click → celebration ────────────────────────────────────────────
@@ -842,7 +857,7 @@
   yesBtn.addEventListener('click', () => {
     celebration.classList.add('show');
     startConfetti();
-    if (audioCtx && !musicPlaying) toggleMusic(); // auto-start music on yes
+    if (!musicPlaying) toggleMusic(); // auto-start music on yes
   });
 
   dateOptions.addEventListener('click', (e) => {
@@ -912,90 +927,47 @@
     }
   }
 
-  // ── sweet piano melody (Web Audio, no external files) ──────────────────
-  // a soft loop reminiscent of cute pastel j-pop / sanrio vibes
-  let audioCtx = null;
+  // ── background music (Charli xcx - 365) ────────────────────────────────
+  const bgMusic = document.getElementById('bgMusic');
+  bgMusic.volume = 0.55;
   let musicPlaying = false;
-  let musicTimer = null;
-  let masterGain = null;
 
-  // gentle melody (note name + duration in beats), in C major, sweet and bouncy
-  const melody = [
-    ['E5', 0.5], ['G5', 0.5], ['C6', 0.75], ['B5', 0.25], ['A5', 0.5], ['G5', 0.5],
-    ['E5', 0.5], ['F5', 0.5], ['G5', 1.0],
-    ['D5', 0.5], ['F5', 0.5], ['A5', 0.75], ['G5', 0.25], ['F5', 0.5], ['E5', 0.5],
-    ['D5', 0.5], ['E5', 0.5], ['C5', 1.0],
-  ];
-
-  const noteFreq = {
-    'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46,
-    'G5': 783.99, 'A5': 880.00, 'B5': 987.77, 'C6': 1046.50
-  };
-
-  function playNote(freq, startTime, duration) {
-    // soft "piano-ish" sound: sine + triangle, with a quick attack & gentle decay
-    const osc1 = audioCtx.createOscillator();
-    const osc2 = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc1.type = 'sine';
-    osc2.type = 'triangle';
-    osc1.frequency.value = freq;
-    osc2.frequency.value = freq * 2; // gentle upper harmonic
-
-    const g2 = audioCtx.createGain();
-    g2.gain.value = 0.15;
-    osc2.connect(g2).connect(gain);
-    osc1.connect(gain);
-
-    gain.gain.setValueAtTime(0, startTime);
-    gain.gain.linearRampToValueAtTime(0.28, startTime + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-
-    gain.connect(masterGain);
-
-    osc1.start(startTime);
-    osc2.start(startTime);
-    osc1.stop(startTime + duration + 0.05);
-    osc2.stop(startTime + duration + 0.05);
-  }
-
-  function scheduleLoop() {
-    const tempo = 1.0; // seconds per beat (slowish, sweet)
-    let t = audioCtx.currentTime + 0.1;
-    melody.forEach(([note, beats]) => {
-      playNote(noteFreq[note], t, beats * tempo);
-      t += beats * tempo;
-    });
-    // schedule next loop
-    const loopLen = melody.reduce((s, [, b]) => s + b * tempo, 0);
-    musicTimer = setTimeout(scheduleLoop, loopLen * 1000 - 100);
+  function setMusicLabel() {
+    document.getElementById('soundToggle').textContent =
+      musicPlaying ? '♪ pause music' : '♪ play music';
   }
 
   function toggleMusic() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      masterGain = audioCtx.createGain();
-      masterGain.gain.value = 0.35;
-      masterGain.connect(audioCtx.destination);
-    }
     if (!musicPlaying) {
-      audioCtx.resume();
-      scheduleLoop();
-      musicPlaying = true;
-      document.getElementById('soundToggle').textContent = '♪ pause music';
+      bgMusic.play().then(() => {
+        musicPlaying = true;
+        setMusicLabel();
+      }).catch(() => {
+        // playback blocked (no gesture yet) — silently keep label as is
+      });
     } else {
-      clearTimeout(musicTimer);
-      masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
-      masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
-      setTimeout(() => {
-        audioCtx.suspend();
-        masterGain.gain.value = 0.35;
-      }, 500);
+      bgMusic.pause();
       musicPlaying = false;
-      document.getElementById('soundToggle').textContent = '♪ play music';
+      setMusicLabel();
     }
   }
+
+  // try to auto-start the music on the very first user gesture anywhere on the
+  // page, since most browsers block autoplay without one
+  function autoStartMusic() {
+    if (musicPlaying) return;
+    bgMusic.play().then(() => {
+      musicPlaying = true;
+      setMusicLabel();
+    }).catch(() => {});
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => {
+    window.addEventListener(ev, autoStartMusic, { once: true, passive: true });
+  });
+
+  // keep the label in sync if playback ends or is blocked
+  bgMusic.addEventListener('pause', () => { musicPlaying = false; setMusicLabel(); });
+  bgMusic.addEventListener('play',  () => { musicPlaying = true;  setMusicLabel(); });
 
   document.getElementById('soundToggle').addEventListener('click', toggleMusic);
 </script>
