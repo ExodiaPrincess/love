@@ -525,7 +525,7 @@
     box-shadow: 0 3px 0 #d9407e, 0 6px 12px rgba(255, 95, 162, 0.4);
   }
 
-  /* final "i love you" popup with cute ghostface */
+  /* final love popup with airport photo */
   .love-modal {
     position: fixed;
     inset: 0;
@@ -534,53 +534,39 @@
     place-items: center;
     background: radial-gradient(circle at 50% 40%, #fff0f7 0%, #ffd1e3 55%, #ffb3d1 100%);
     overflow: hidden;
-    cursor: pointer;
+    padding: clamp(8px, 2vh, 20px) 20px;
   }
   .love-modal.show {
     display: grid;
     animation: fade-in 0.5s ease both;
   }
-  .tap-hint {
-    position: absolute;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Caveat', cursive;
-    font-size: clamp(18px, 2vw, 24px);
-    color: #b03a72;
-    opacity: 0.8;
-    animation: tap-pulse 1.6s ease-in-out infinite;
-  }
-  @keyframes tap-pulse {
-    0%, 100% { opacity: 0.45; transform: translate(-50%, 0) scale(1); }
-    50%      { opacity: 0.9;  transform: translate(-50%, 0) scale(1.08); }
-  }
-
-  /* airport popup with photo */
-  .airport-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 35;
-    display: none;
-    place-items: center;
-    background: radial-gradient(circle at 50% 40%, #fff0f7 0%, #ffd1e3 55%, #ffb3d1 100%);
-    overflow: hidden;
-    padding: clamp(12px, 3vh, 28px) 20px;
-  }
-  .airport-modal.show {
-    display: grid;
-    animation: fade-in 0.5s ease both;
-  }
-  .airport-content {
+  .love-content {
     position: relative;
     z-index: 2;
     text-align: center;
     max-width: min(92vw, 720px);
     animation: love-pop 0.7s cubic-bezier(.22,1.4,.36,1) both;
   }
+  @keyframes love-pop {
+    0%   { transform: scale(0.6) translateY(30px); opacity: 0; }
+    100% { transform: scale(1)   translateY(0);    opacity: 1; }
+  }
+  .love-text {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(44px, 8vw, 96px);
+    color: #ff3d8b;
+    text-shadow: 4px 4px 0 #fff, 8px 8px 0 rgba(255, 159, 200, 0.5);
+    line-height: 1;
+    margin-bottom: 18px;
+    animation: love-wiggle 2.4s ease-in-out infinite;
+  }
+  @keyframes love-wiggle {
+    0%, 100% { transform: rotate(-2deg); }
+    50%      { transform: rotate(2deg); }
+  }
   .airport-img {
     width: 100%;
-    max-height: 72vh;
+    max-height: 58vh;
     object-fit: contain;
     border-radius: 28px;
     border: 6px solid white;
@@ -589,64 +575,14 @@
       0 20px 40px rgba(255, 95, 162, 0.4),
       0 0 60px rgba(255, 182, 213, 0.6);
     display: block;
-    margin: 0 auto 18px;
+    margin: 0 auto 16px;
   }
   .airport-text {
     font-family: 'Pacifico', cursive;
-    font-size: clamp(28px, 4.4vw, 54px);
+    font-size: clamp(22px, 3.4vw, 38px);
     color: #ff3d8b;
-    text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(255, 159, 200, 0.5);
-    line-height: 1.15;
-    animation: love-wiggle 2.4s ease-in-out infinite;
-  }
-  .airport-hearts {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-  }
-  .airport-hearts span {
-    position: absolute;
-    bottom: -40px;
-    color: #ff5fa2;
-    opacity: 0.85;
-    font-size: 24px;
-    animation: love-rise linear infinite;
-    text-shadow: 0 0 10px rgba(255, 95, 162, 0.5);
-  }
-  .love-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    animation: love-pop 0.7s cubic-bezier(.22,1.4,.36,1) both;
-  }
-  @keyframes love-pop {
-    0%   { transform: scale(0.6) translateY(30px); opacity: 0; }
-    100% { transform: scale(1)   translateY(0);    opacity: 1; }
-  }
-  .ghostface-svg {
-    width: clamp(180px, 30vw, 320px);
-    height: auto;
-    display: block;
-    margin: 0 auto 18px;
-    animation: ghost-float 3s ease-in-out infinite;
-    filter: drop-shadow(0 14px 30px rgba(255, 95, 162, 0.45));
-  }
-  @keyframes ghost-float {
-    0%, 100% { transform: translateY(0) rotate(-2deg); }
-    50%      { transform: translateY(-14px) rotate(2deg); }
-  }
-  .love-text {
-    font-family: 'Pacifico', cursive;
-    font-size: clamp(48px, 9vw, 110px);
-    color: #ff3d8b;
-    text-shadow: 4px 4px 0 #fff, 8px 8px 0 rgba(255, 159, 200, 0.5);
-    line-height: 1;
-    animation: love-wiggle 2.4s ease-in-out infinite;
-  }
-  @keyframes love-wiggle {
-    0%, 100% { transform: rotate(-2deg); }
-    50%      { transform: rotate(2deg); }
+    text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(255, 159, 200, 0.5);
+    line-height: 1.2;
   }
   .love-hearts {
     position: absolute;
@@ -789,48 +725,8 @@
 <div class="love-modal" id="loveModal" hidden>
   <div class="love-hearts" id="loveHearts" aria-hidden="true"></div>
   <div class="love-content">
-    <p class="tap-hint">tap anywhere ♡</p>
-    <svg class="ghostface-svg" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <radialGradient id="faceGrad" cx="50%" cy="40%" r="60%">
-          <stop offset="0%"   stop-color="#ffffff"/>
-          <stop offset="100%" stop-color="#ececec"/>
-        </radialGradient>
-      </defs>
-      <!-- hood (black cloak) -->
-      <path d="M 22 92 Q 22 28 110 28 Q 198 28 198 92 L 198 220 Q 198 258 110 258 Q 22 258 22 220 Z"
-            fill="#141414"/>
-      <!-- hood inner shadow rim -->
-      <path d="M 38 100 Q 38 48 110 48 Q 182 48 182 100"
-            fill="none" stroke="#2a2a2a" stroke-width="3" opacity="0.7"/>
-      <!-- white face -->
-      <ellipse cx="110" cy="142" rx="64" ry="82" fill="url(#faceGrad)"/>
-      <!-- left teardrop eye -->
-      <path d="M 78 112 C 66 146, 72 168, 92 162 C 100 150, 94 122, 86 112 Z" fill="#0a0a0a"/>
-      <!-- right teardrop eye -->
-      <path d="M 142 112 C 154 146, 148 168, 128 162 C 120 150, 126 122, 134 112 Z" fill="#0a0a0a"/>
-      <!-- eye sparkles -->
-      <circle cx="84"  cy="128" r="5" fill="#ffffff"/>
-      <circle cx="136" cy="128" r="5" fill="#ffffff"/>
-      <circle cx="79"  cy="142" r="2.4" fill="#ffffff" opacity="0.9"/>
-      <circle cx="141" cy="142" r="2.4" fill="#ffffff" opacity="0.9"/>
-      <!-- cute small mouth -->
-      <ellipse cx="110" cy="192" rx="9" ry="13" fill="#0a0a0a"/>
-      <!-- pink blush -->
-      <ellipse cx="66"  cy="182" rx="15" ry="9" fill="#ff9ec0" opacity="0.6"/>
-      <ellipse cx="154" cy="182" rx="15" ry="9" fill="#ff9ec0" opacity="0.6"/>
-      <!-- little floating hearts beside the head -->
-      <text x="14"  y="80" font-size="22" fill="#ff5fa2" font-family="serif">♡</text>
-      <text x="190" y="90" font-size="18" fill="#ff7eb6" font-family="serif">♡</text>
-    </svg>
-    <h2 class="love-text">i love you ♡</h2>
-  </div>
-</div>
-
-<div class="airport-modal" id="airportModal" hidden>
-  <div class="airport-hearts" id="airportHearts" aria-hidden="true"></div>
-  <div class="airport-content">
-    <img class="airport-img" src="airport.jpg" alt="ghostface couple ♡" />
+    <h2 class="love-text">love you ♡</h2>
+    <img class="airport-img" src="airport.jpg" alt="us ♡" />
     <p class="airport-text">me taking u to the airport with me</p>
   </div>
 </div>
@@ -1148,27 +1044,6 @@
     }
   }
 
-  // tapping anywhere on the love modal advances to the airport popup
-  const airportModal  = document.getElementById('airportModal');
-  const airportHearts = document.getElementById('airportHearts');
-
-  function showAirport() {
-    airportModal.hidden = false;
-    requestAnimationFrame(() => airportModal.classList.add('show'));
-    if (!airportHearts.dataset.spawned) {
-      airportHearts.dataset.spawned = '1';
-      spawnRisingHearts(airportHearts, 22);
-    }
-  }
-
-  loveModal.addEventListener('click', () => {
-    if (!loveModal.classList.contains('show')) return;
-    loveModal.classList.remove('show');
-    setTimeout(() => {
-      loveModal.hidden = true;
-      showAirport();
-    }, 350);
-  });
 
   function startConfetti() {
     const symbols = ['♡', '♥', '✿', '❀', '✦', '⋆'];
