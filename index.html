@@ -671,12 +671,16 @@
   const PLAY_VIEWPORT_RATIO = 0.85; // never exceed this fraction of viewport
 
   // ── continuous DVD-style bounce for the No button ──────────────────────
-  let noX = 0, noY = 0;
+  let noX = 0, noY = 0;                 // logical position
+  let displayX = 0, displayY = 0;       // visually-rendered position (drifts toward noX/noY)
   let noVX = 0, noVY = 0;
   let noRunning = false;
   let noAngle = 0;       // current rotation in degrees
   let noAngleVel = 0;    // degrees per frame
   let lastFrameTime = 0;
+  // how quickly displayX/Y catch up to noX/noY per frame at 60fps (0..1).
+  // Lower = smoother drift after sudden text-size changes. ~0.32 = ~165ms settle.
+  const DISPLAY_LERP = 0.32;
 
   function getPlayBounds() {
     const w = Math.min(PLAY_MAX_W, window.innerWidth  * PLAY_VIEWPORT_RATIO);
@@ -708,6 +712,8 @@
     noBtn.style.margin = '0';
     noX = rect.left;
     noY = rect.top;
+    displayX = noX;
+    displayY = noY;
 
     // initial velocity: random direction, gentle speed
     const speed = 1.4; // px per frame at 60fps
@@ -751,8 +757,15 @@
     if (noAngle >  12) { noAngle =  12; noAngleVel = -Math.abs(noAngleVel); }
     if (noAngle < -12) { noAngle = -12; noAngleVel =  Math.abs(noAngleVel); }
 
-    noBtn.style.left = noX + 'px';
-    noBtn.style.top  = noY + 'px';
+    // drift displayX/displayY toward the logical position so any sudden
+    // clamp (caused by a text change resizing the button) glides in
+    // instead of teleporting
+    const a = 1 - Math.pow(1 - DISPLAY_LERP, dt);
+    displayX += (noX - displayX) * a;
+    displayY += (noY - displayY) * a;
+
+    noBtn.style.left = displayX + 'px';
+    noBtn.style.top  = displayY + 'px';
     noBtn.style.transform = `rotate(${noAngle}deg)`;
 
     requestAnimationFrame(tickNo);
