@@ -323,6 +323,111 @@
     .date-options { grid-template-columns: 1fr; }
   }
 
+  /* rejection modal — dramatic big red X */
+  .rejection-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    place-items: center;
+    background: rgba(255, 192, 217, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .rejection-modal.show {
+    display: grid;
+    animation: fade-in 0.25s ease both;
+  }
+
+  .big-cross-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .cross-line {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 160vmax;
+    height: clamp(18px, 2.4vw, 32px);
+    background: linear-gradient(90deg, #ff2d62, #ff5a8a, #ff2d62);
+    border-radius: 999px;
+    box-shadow:
+      0 0 0 6px rgba(255, 255, 255, 0.75),
+      0 0 40px rgba(255, 45, 98, 0.6);
+    transform-origin: center;
+  }
+  .cross-line-1 {
+    transform: translate(-50%, -50%) rotate(45deg) scaleX(0);
+  }
+  .cross-line-2 {
+    transform: translate(-50%, -50%) rotate(-45deg) scaleX(0);
+  }
+  .rejection-modal.show .cross-line-1 {
+    animation: draw-line-1 0.5s cubic-bezier(.22,1.4,.36,1) 0.05s forwards;
+  }
+  .rejection-modal.show .cross-line-2 {
+    animation: draw-line-2 0.5s cubic-bezier(.22,1.4,.36,1) 0.22s forwards;
+  }
+  @keyframes draw-line-1 {
+    to { transform: translate(-50%, -50%) rotate(45deg) scaleX(1); }
+  }
+  @keyframes draw-line-2 {
+    to { transform: translate(-50%, -50%) rotate(-45deg) scaleX(1); }
+  }
+
+  .rejection-card {
+    position: relative;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.96);
+    border: 3px solid #ff5fa2;
+    border-radius: 28px;
+    padding: 32px 40px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow:
+      0 0 0 6px rgba(255, 255, 255, 0.6),
+      0 20px 40px rgba(255, 45, 98, 0.35);
+    animation: card-shake 0.5s ease 0.55s both;
+  }
+  @keyframes card-shake {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(-10px); }
+    40%  { transform: translateX(10px); }
+    60%  { transform: translateX(-7px); }
+    80%  { transform: translateX(7px); }
+    100% { transform: translateX(0); }
+  }
+  .rejection-card p {
+    font-family: 'Caveat', cursive;
+    font-size: clamp(24px, 3.2vw, 34px);
+    color: #b03a72;
+    line-height: 1.3;
+    margin-bottom: 24px;
+  }
+  .try-again-btn {
+    background: linear-gradient(135deg, #ff7eb6 0%, #ff5fa2 100%);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 32px;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #d9407e, 0 10px 20px rgba(255, 95, 162, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .try-again-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 9px 0 #d9407e, 0 14px 26px rgba(255, 95, 162, 0.5);
+  }
+  .try-again-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 #d9407e, 0 6px 12px rgba(255, 95, 162, 0.4);
+  }
+
   /* confetti hearts on celebration */
   .confetti {
     position: absolute;
@@ -413,6 +518,17 @@
     </div>
   </div>
 </section>
+
+<div class="rejection-modal" id="rejectionModal" hidden>
+  <div class="big-cross-overlay" aria-hidden="true">
+    <span class="cross-line cross-line-1"></span>
+    <span class="cross-line cross-line-2"></span>
+  </div>
+  <div class="rejection-card">
+    <p id="rejectionText"></p>
+    <button class="try-again-btn" id="tryAgainBtn">Try again ♡</button>
+  </div>
+</div>
 
 <button class="sound-hint" id="soundToggle">♪ play music</button>
 
@@ -584,12 +700,16 @@
   const finalText    = document.getElementById('finalText');
   const celebText    = document.getElementById('celebText');
 
-  const placeMessages = {
-    'the beach':   "the beach it is, my love ♡<br>i'll bring snacks, you bring that smile.",
-    'Shack':       "Shack ♡ our place.<br>can't wait to see you across the table again.",
-    'Leiria city': "Leiria city ♡<br>a slow walk, your hand in mine — perfect.",
-    'London':      "London?! ♡<br>pack your cutest outfit, this is gonna be magical."
+  const placeData = {
+    'the beach':   { correct: false, text: "you don't like sand that much, try again" },
+    'Shack':       { correct: false, text: "we already go there when we play dbd" },
+    'Leiria city': { correct: false, text: "do you wanna go study or what? try again" },
+    'London':      { correct: true,  text: "i'm glad you choose this ♡<br>my holidays are in august — how does the 20th to the 25th sound?<br>all expenses paid, you can pay me back in kisses." }
   };
+
+  const rejectionModal = document.getElementById('rejectionModal');
+  const rejectionText  = document.getElementById('rejectionText');
+  const tryAgainBtn    = document.getElementById('tryAgainBtn');
 
   yesBtn.addEventListener('click', () => {
     celebration.classList.add('show');
@@ -599,24 +719,45 @@
 
   dateOptions.addEventListener('click', (e) => {
     const opt = e.target.closest('.date-option');
-    if (!opt) return;
+    if (!opt || opt.disabled) return;
 
-    // visually mark the chosen one, dim the rest
-    dateOptions.querySelectorAll('.date-option').forEach(b => {
-      b.classList.remove('chosen');
-      b.disabled = true;
-      if (b !== opt) b.style.opacity = '0.45';
-    });
-    opt.classList.add('chosen');
-
-    // swap the prompt with the confirmation
-    celebText.style.display = 'none';
     const place = opt.dataset.place;
-    finalText.innerHTML = placeMessages[place] || `${place} it is ♡`;
-    finalMessage.hidden = false;
+    const data  = placeData[place];
+    if (!data) return;
 
-    // one more burst of confetti for the chosen date
-    startConfetti();
+    if (data.correct) {
+      // London → success flow: lock in the choice, swap text, more confetti
+      dateOptions.querySelectorAll('.date-option').forEach(b => {
+        b.classList.remove('chosen');
+        b.disabled = true;
+        if (b !== opt) b.style.opacity = '0.45';
+      });
+      opt.classList.add('chosen');
+      celebText.style.display = 'none';
+      finalText.innerHTML = data.text;
+      finalMessage.hidden = false;
+      startConfetti();
+    } else {
+      // wrong pick → dramatic big X overlay with the cheeky reason
+      showRejection(data.text);
+    }
+  });
+
+  function showRejection(text) {
+    rejectionText.textContent = text;
+    rejectionModal.hidden = false;
+    // next frame so the .show animation actually plays from start
+    requestAnimationFrame(() => rejectionModal.classList.add('show'));
+  }
+
+  tryAgainBtn.addEventListener('click', () => {
+    rejectionModal.classList.remove('show');
+    setTimeout(() => { rejectionModal.hidden = true; }, 250);
+  });
+
+  // dismiss the rejection by clicking the backdrop too
+  rejectionModal.addEventListener('click', (e) => {
+    if (e.target === rejectionModal) tryAgainBtn.click();
   });
 
   function startConfetti() {
