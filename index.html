@@ -428,6 +428,96 @@
     box-shadow: 0 3px 0 #d9407e, 0 6px 12px rgba(255, 95, 162, 0.4);
   }
 
+  /* success modal — giant green check */
+  .success-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    display: none;
+    place-items: center;
+    background: rgba(186, 245, 211, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .success-modal.show {
+    display: grid;
+    animation: fade-in 0.3s ease both;
+  }
+
+  .big-check-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: grid;
+    place-items: center;
+  }
+  .check-svg {
+    width: min(70vw, 70vh);
+    height: min(70vw, 70vh);
+    filter:
+      drop-shadow(0 0 0 white)
+      drop-shadow(0 0 30px rgba(46, 204, 113, 0.55));
+  }
+  .check-path {
+    stroke: #2ecc71;
+    stroke-width: 22;
+    stroke-dasharray: 260;
+    stroke-dashoffset: 260;
+  }
+  .success-modal.show .check-path {
+    animation: draw-check 0.8s cubic-bezier(.22, 1.0, .36, 1) 0.1s forwards;
+  }
+  @keyframes draw-check {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .success-card {
+    position: relative;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.96);
+    border: 3px solid #ff7eb6;
+    border-radius: 28px;
+    padding: 32px 40px;
+    max-width: 540px;
+    text-align: center;
+    box-shadow:
+      0 0 0 6px rgba(255, 255, 255, 0.6),
+      0 20px 40px rgba(255, 95, 162, 0.35);
+    animation: card-pop-in 0.6s cubic-bezier(.22,1.4,.36,1) 0.6s both;
+  }
+  @keyframes card-pop-in {
+    0%   { transform: scale(0.7) translateY(20px); opacity: 0; }
+    100% { transform: scale(1)   translateY(0);    opacity: 1; }
+  }
+  .success-card p {
+    font-family: 'Caveat', cursive;
+    font-size: clamp(22px, 3vw, 30px);
+    color: #b03a72;
+    line-height: 1.4;
+    margin-bottom: 24px;
+  }
+  .cant-wait-btn {
+    background: linear-gradient(135deg, #ff7eb6 0%, #ff5fa2 100%);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 32px;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #d9407e, 0 10px 20px rgba(255, 95, 162, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .cant-wait-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 9px 0 #d9407e, 0 14px 26px rgba(255, 95, 162, 0.5);
+  }
+  .cant-wait-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 #d9407e, 0 6px 12px rgba(255, 95, 162, 0.4);
+  }
+
   /* confetti hearts on celebration */
   .confetti {
     position: absolute;
@@ -527,6 +617,21 @@
   <div class="rejection-card">
     <p id="rejectionText"></p>
     <button class="try-again-btn" id="tryAgainBtn">Try again ♡</button>
+  </div>
+</div>
+
+<div class="success-modal" id="successModal" hidden>
+  <div class="big-check-overlay" aria-hidden="true">
+    <svg class="check-svg" viewBox="0 0 200 200">
+      <path class="check-path" d="M 30 110 L 85 160 L 175 50"
+            fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+  <div class="success-card">
+    <p>i'm glad you choose this ♡<br>
+       my holidays are in august, how does the 20th to the 25th sound?<br>
+       all expenses paid, you can pay me back in kisses.</p>
+    <button class="cant-wait-btn" id="cantWaitBtn">Can't wait ♡</button>
   </div>
 </div>
 
@@ -704,12 +809,14 @@
     'the beach':   { correct: false, text: "you don't like sand that much, try again" },
     'Shack':       { correct: false, text: "we already go there when we play dbd" },
     'Leiria city': { correct: false, text: "do you wanna go study or what? try again" },
-    'London':      { correct: true,  text: "i'm glad you choose this ♡<br>my holidays are in august — how does the 20th to the 25th sound?<br>all expenses paid, you can pay me back in kisses." }
+    'London':      { correct: true }
   };
 
   const rejectionModal = document.getElementById('rejectionModal');
   const rejectionText  = document.getElementById('rejectionText');
   const tryAgainBtn    = document.getElementById('tryAgainBtn');
+  const successModal   = document.getElementById('successModal');
+  const cantWaitBtn    = document.getElementById('cantWaitBtn');
 
   yesBtn.addEventListener('click', () => {
     celebration.classList.add('show');
@@ -726,16 +833,14 @@
     if (!data) return;
 
     if (data.correct) {
-      // London → success flow: lock in the choice, swap text, more confetti
+      // London → success: lock in the choice, fire the green check popup
       dateOptions.querySelectorAll('.date-option').forEach(b => {
         b.classList.remove('chosen');
         b.disabled = true;
         if (b !== opt) b.style.opacity = '0.45';
       });
       opt.classList.add('chosen');
-      celebText.style.display = 'none';
-      finalText.innerHTML = data.text;
-      finalMessage.hidden = false;
+      showSuccess();
       startConfetti();
     } else {
       // wrong pick → dramatic big X overlay with the cheeky reason
@@ -758,6 +863,16 @@
   // dismiss the rejection by clicking the backdrop too
   rejectionModal.addEventListener('click', (e) => {
     if (e.target === rejectionModal) tryAgainBtn.click();
+  });
+
+  function showSuccess() {
+    successModal.hidden = false;
+    requestAnimationFrame(() => successModal.classList.add('show'));
+  }
+
+  cantWaitBtn.addEventListener('click', () => {
+    successModal.classList.remove('show');
+    setTimeout(() => { successModal.hidden = true; }, 300);
   });
 
   function startConfetti() {
