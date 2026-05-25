@@ -178,12 +178,18 @@
     border: 2px solid #ffb3d1;
     box-shadow: 0 4px 0 #ffb3d1, 0 6px 12px rgba(255, 179, 209, 0.4);
     position: relative;
-    /* no transition once bouncing — rAF drives the motion */
+    /* no transitions — once bouncing, rAF drives every property each frame */
+    transition: none;
     white-space: nowrap;
     will-change: left, top, transform;
   }
   .no-btn.bouncing {
     z-index: 5;
+  }
+  /* keep the buttons row the same width once No detaches so Yes doesn't shift */
+  #noPlaceholder {
+    visibility: hidden;
+    pointer-events: none;
   }
 
   /* celebration screen */
@@ -708,6 +714,19 @@
 
     // lock current size into a fixed-position element starting at its current spot
     const rect = noBtn.getBoundingClientRect();
+    const w = noBtn.offsetWidth;
+    const h = noBtn.offsetHeight;
+
+    // drop a same-size invisible placeholder so the card layout doesn't reshape
+    // (otherwise Yes would re-center, which reads as a jolt)
+    if (!document.getElementById('noPlaceholder')) {
+      const placeholder = document.createElement('div');
+      placeholder.id = 'noPlaceholder';
+      placeholder.style.width  = w + 'px';
+      placeholder.style.height = h + 'px';
+      noBtn.parentNode.insertBefore(placeholder, noBtn);
+    }
+
     noBtn.classList.add('bouncing');
     noBtn.style.position = 'fixed';
     noBtn.style.left = rect.left + 'px';
@@ -810,24 +829,8 @@
   noBtn.addEventListener('click', onClickNo);
   noBtn.addEventListener('touchstart', onClickNo, { passive: false });
 
-  // first hover starts the drift — and aims away from the cursor — but does
-  // NOT change the message. If she never hovers, the No button stays in place.
-  function onFirstNoHover(e) {
-    if (noRunning) return;
-    const rect = noBtn.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top  + rect.height / 2;
-    const dx = cx - e.clientX;
-    const dy = cy - e.clientY;
-    const len = Math.hypot(dx, dy);
-    startBouncing();
-    if (len > 0.1) {
-      const speed = 1.4;
-      noVX = (dx / len) * speed;
-      noVY = (dy / len) * speed;
-    }
-  }
-  noBtn.addEventListener('mouseenter', onFirstNoHover);
+  // Hover does NOT start the bounce — the button only starts moving on click,
+  // and it starts from exactly where it was sitting in the card.
 
   // keep on-screen if the window resizes
   window.addEventListener('resize', () => {
@@ -929,8 +932,16 @@
 
   // ── background music (Charli xcx - 365) ────────────────────────────────
   const bgMusic = document.getElementById('bgMusic');
-  bgMusic.volume = 0.55;
+  bgMusic.volume = 0.32;
   let musicPlaying = false;
+  let musicStarted = false; // whether we've already seeked to the intro point
+
+  // start the song at the drop (~0:20) on the very first play
+  function primeMusicStart() {
+    if (musicStarted) return;
+    try { bgMusic.currentTime = 20; } catch (_) {}
+    musicStarted = true;
+  }
 
   function setMusicLabel() {
     document.getElementById('soundToggle').textContent =
@@ -939,6 +950,7 @@
 
   function toggleMusic() {
     if (!musicPlaying) {
+      primeMusicStart();
       bgMusic.play().then(() => {
         musicPlaying = true;
         setMusicLabel();
@@ -956,6 +968,7 @@
   // page, since most browsers block autoplay without one
   function autoStartMusic() {
     if (musicPlaying) return;
+    primeMusicStart();
     bgMusic.play().then(() => {
       musicPlaying = true;
       setMusicLabel();
