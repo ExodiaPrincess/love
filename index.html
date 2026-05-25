@@ -334,6 +334,10 @@
   let noIndex = 0;
 
   const SAFE_MARGIN = 12;
+  // play frame the No button is confined to — caps how far it can wander
+  const PLAY_MAX_W = 900;
+  const PLAY_MAX_H = 540;
+  const PLAY_VIEWPORT_RATIO = 0.85; // never exceed this fraction of viewport
 
   // ── continuous DVD-style bounce for the No button ──────────────────────
   let noX = 0, noY = 0;
@@ -343,13 +347,22 @@
   let noAngleVel = 0;    // degrees per frame
   let lastFrameTime = 0;
 
+  function getPlayBounds() {
+    const w = Math.min(PLAY_MAX_W, window.innerWidth  * PLAY_VIEWPORT_RATIO);
+    const h = Math.min(PLAY_MAX_H, window.innerHeight * PLAY_VIEWPORT_RATIO);
+    const left = (window.innerWidth  - w) / 2;
+    const top  = (window.innerHeight - h) / 2;
+    return { left, top, right: left + w, bottom: top + h };
+  }
+
   function clampInside() {
     const w = noBtn.offsetWidth;
     const h = noBtn.offsetHeight;
-    if (noX < SAFE_MARGIN) noX = SAFE_MARGIN;
-    if (noY < SAFE_MARGIN) noY = SAFE_MARGIN;
-    if (noX > window.innerWidth  - w - SAFE_MARGIN) noX = window.innerWidth  - w - SAFE_MARGIN;
-    if (noY > window.innerHeight - h - SAFE_MARGIN) noY = window.innerHeight - h - SAFE_MARGIN;
+    const p = getPlayBounds();
+    if (noX < p.left + SAFE_MARGIN) noX = p.left + SAFE_MARGIN;
+    if (noY < p.top  + SAFE_MARGIN) noY = p.top  + SAFE_MARGIN;
+    if (noX > p.right  - w - SAFE_MARGIN) noX = p.right  - w - SAFE_MARGIN;
+    if (noY > p.bottom - h - SAFE_MARGIN) noY = p.bottom - h - SAFE_MARGIN;
   }
 
   function startBouncing() {
@@ -385,10 +398,11 @@
 
     const w = noBtn.offsetWidth;
     const h = noBtn.offsetHeight;
-    const minX = SAFE_MARGIN;
-    const minY = SAFE_MARGIN;
-    const maxX = window.innerWidth  - w - SAFE_MARGIN;
-    const maxY = window.innerHeight - h - SAFE_MARGIN;
+    const p = getPlayBounds();
+    const minX = p.left + SAFE_MARGIN;
+    const minY = p.top  + SAFE_MARGIN;
+    const maxX = p.right  - w - SAFE_MARGIN;
+    const maxY = p.bottom - h - SAFE_MARGIN;
 
     noX += noVX * dt;
     noY += noVY * dt;
